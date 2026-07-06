@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weather Clothes — Outfit Recommender</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --card: #1a1a1a;
+      --border: #2a2a2a;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e8e8e8;
+      --muted: #888;
+      --success: #4ade80;
+      --warm: #f59e0b;
+      --cool: #38bdf8;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem 4rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    header p {
+      color: var(--muted);
+      margin-top: .5rem;
+      font-size: .95rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 1.25rem;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    @media (max-width: 480px) {
+      .row { grid-template-columns: 1fr; }
+    }
+
+    .field { display: flex; flex-direction: column; gap: .4rem; }
+
+    label {
+      font-size: .82rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    input, select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      padding: .65rem .9rem;
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .2s;
+      width: 100%;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    input[type=range] {
+      padding: .3rem 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+    }
+
+    .range-val {
+      min-width: 3rem;
+      text-align: right;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .checkbox-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: .5rem;
+      margin-top: .25rem;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: .35rem .8rem;
+      cursor: pointer;
+      font-size: .85rem;
+      transition: all .2s;
+      user-select: none;
+    }
+
+    .chip input[type=checkbox] { display: none; }
+
+    .chip.active {
+      background: rgba(108,99,255,.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn {
+      width: 100%;
+      padding: .9rem;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+      transition: opacity .2s, transform .1s;
+      letter-spacing: .02em;
+    }
+
+    .btn:hover { opacity: .9; }
+    .btn:active { transform: scale(.98); }
+
+    #result {
+      display: none;
+      animation: fadeIn .4s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .outfit-header {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .weather-badge {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+
+    .outfit-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+    }
+
+    .outfit-subtitle {
+      font-size: .85rem;
+      color: var(--muted);
+      margin-top: .15rem;
+    }
+
+    .layers {
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+    }
+
+    .layer {
+      display: flex;
+      gap: .75rem;
+      align-items: flex-start;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: .9rem 1rem;
+    }
+
+    .layer-icon { font-size: 1.5rem; flex-shrink: 0; }
+
+    .layer-body { flex: 1; }
+
+    .layer-name {
+      font-size: .78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: .2rem;
+    }
+
+    .layer-items {
+      font-size: .95rem;
+      font-weight: 500;
+    }
+
+    .layer-note {
+      font-size: .8rem;
+      color: var(--muted);
+      margin-top: .2rem;
+    }
+
+    .tips {
+      margin-top: 1rem;
+      padding: .9rem 1rem;
+      background: rgba(108,99,255,.08);
+      border: 1px solid rgba(108,99,255,.2);
+      border-radius: 12px;
+    }
+
+    .tips p {
+      font-size: .88rem;
+      color: #bbb;
+      line-height: 1.6;
+    }
+
+    .tips p + p { margin-top: .4rem; }
+
+    .tip-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--accent);
+      margin-bottom: .5rem;
+    }
+
+    .temp-tag {
+      display: inline-block;
+      padding: .15rem .6rem;
+      border-radius: 20px;
+      font-size: .82rem;
+      font-weight: 700;
+      margin-left: .3rem;
+    }
+
+    .temp-tag.warm { background: rgba(245,158,11,.15); color: var(--warm); }
+    .temp-tag.cool { background: rgba(56,189,248,.15); color: var(--cool); }
+    .temp-tag.cold { background: rgba(99,102,241,.15); color: #818cf8; }
+    .temp-tag.hot  { background: rgba(255,101,132,.15); color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌤 Weather Clothes</h1>
+  <p>Enter tomorrow's forecast → get your exact outfit</p>
+</header>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Tomorrow's Weather</h2>
+
+    <div class="row">
+      <div class="field">
+        <label>Temperature (°F)</label>
+        <div class="range-row">
+          <input type="range" id="temp" min="-10" max="115" value="65" step="1" />
+          <span class="range-val" id="tempVal">65°</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>Feels Like (°F)</label>
+        <div class="range-row">
+          <input type="range" id="feels" min="-10" max="115" value="63" step="1" />
+          <span class="range-val" id="feelsVal">63°</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Conditions</label>
+        <select id="condition">
+          <option value="sunny">☀️ Sunny / Clear</option>
+          <option value="cloudy">☁️ Cloudy / Overcast</option>
+          <option value="rain">🌧 Rainy</option>
+          <option value="drizzle">🌦 Light Drizzle</option>
+          <option value="snow">❄️ Snowy</option>
+          <option value="windy">💨 Windy</option>
+          <option value="humid">🌫 Humid / Muggy</option>
+          <option value="thunderstorm">⛈ Thunderstorm</option>
+          <option value="fog">🌁 Foggy</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Wind Speed (mph)</label>
+        <div class="range-row">
+          <input type="range" id="wind" min="0" max="60" value="8" step="1" />
+          <span class="range-val" id="windVal">8</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>Activity</label>
+        <select id="activity">
+          <option value="casual">🚶 Casual / Errands</option>
+          <option value="work">💼 Work / Office</option>
+          <option value="outdoor">🏃 Outdoor / Active</option>
+          <option value="formal">🎩 Formal / Event</option>
+          <option value="travel">✈️ Travel</option>
+          <option value="date">🌹 Date Night</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Style Preference</label>
+        <select id="style">
+          <option value="comfort">Comfort First</option>
+          <option value="stylish">Stylish</option>
+          <option value="minimal">Minimalist</option>
+          <option value="sporty">Sporty</option>
+          <option value="smart">Smart Casual</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:1rem">
+      <label>Considerations</label>
+      <div class="checkbox-group" id="extras">
+        <label class="chip" id="chip-sensitive">
+          <input type="checkbox" value="sensitive" /> 🌡 Cold-sensitive
+        </label>
+        <label class="chip" id="chip-sweat">
+          <input type="checkbox" value="sweat" /> 💧 Sweats easily
+        </label>
+        <label class="chip" id="chip-formal-end">
+          <input type="checkbox" value="formal-end" /> 🍸 Evening event
+        </label>
+        <label class="chip" id="chip-commute">
+          <input type="checkbox" value="commute" /> 🚇 Long commute
+        </label>
+      </div>
+    </div>
+
+    <button class="btn" onclick="recommend()">🧥 Build My Outfit</button>
+  </div>
+
+  <div id="result" class="card">
+    <!-- filled by JS -->
+  </div>
+
+</div>
+
+<script>
+// --- Range display ---
+document.querySelectorAll('input[type=range]').forEach(r => {
+  const valEl = document.getElementById(r.id + 'Val');
+  r.addEventListener('input', () => {
+    if (r.id === 'wind') valEl.textContent = r.value + ' mph';
+    else valEl.textContent = r.value + '°';
+  });
+});
+
+// --- Chips ---
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    chip.classList.toggle('active');
+  });
+});
+
+function getChecked() {
+  return [...document.querySelectorAll('.chip.active input')].map(i => i.value);
+}
+
+// Outfit database
+const OUTFITS = {
+  // --- FREEZING (< 20°F) ---
+  freezing: {
+    base:  { icon: '🧤', items: 'Thermal base layer top + bottoms', note: 'Moisture-wicking material essential' },
+    mid:   { icon: '🧶', items: 'Heavy fleece or wool sweater + thick insulated pants', note: 'Down layer over fleece if sub-zero' },
+    outer: { icon: '🧥', items: 'Heavy parka (rated -10°F or lower)', note: 'Look for down or synthetic insulation with hood' },
+    feet:  { icon: '👢', items: 'Insulated waterproof winter boots + wool socks', note: 'Double-layer socks if standing outdoors long' },
+    acc:   { icon: '🧣', items: 'Balaclava, thick wool scarf, insulated gloves, beanie', note: 'Cover all exposed skin' },
+  },
+  // --- VERY COLD (20–34°F) ---
+  verycold: {
+    base:  { icon: '👕', items: 'Thermal base layer', note: 'Merino wool or synthetic' },
+    mid:   { icon: '🧶', items: 'Thick sweater or fleece pullover + lined pants', note: 'Add a puffer vest for extra warmth' },
+    outer: { icon: '🧥', items: 'Heavy insulated winter coat', note: 'Down or synthetic fill, water-resistant shell' },
+    feet:  { icon: '👟', items: 'Insulated boots + wool/thick socks', note: null },
+    acc:   { icon: '🧣', items: 'Warm scarf, gloves, and beanie', note: null },
+  },
+  // --- COLD (35–49°F) ---
+  cold: {
+    base:  { icon: '👕', items: 'Long-sleeve shirt or lightweight thermal', note: null },
+    mid:   { icon: '🧶', items: 'Sweater or hoodie + chinos/jeans', note: null },
+    outer: { icon: '🧥', items: 'Mid-weight jacket or peacoat', note: 'Add a puffer layer on windy days' },
+    feet:  { icon: '👟', items: 'Sneakers or ankle boots + medium socks', note: null },
+    acc:   { icon: '🧤', items: 'Light gloves, optional scarf', note: null },
+  },
+  // --- COOL (50–64°F) ---
+  cool: {
+    base:  { icon: '👕', items: 'T-shirt or long-sleeve shirt', note: null },
+    mid:   { icon: '🧥', items: 'Light jacket, denim jacket, or cardigan', note: 'Layer-up or layer-down easily' },
+    outer: null,
+    feet:  { icon: '👟', items: 'Sneakers or loafers', note: null },
+    acc:   { icon: '🎒', items: 'Optional light scarf', note: 'Good temp to carry a layer in a bag' },
+  },
+  // --- MILD (65–74°F) ---
+  mild: {
+    base:  { icon: '👕', items: 'T-shirt, polo, or light button-down', note: null },
+    mid:   { icon: '🧥', items: 'Light cardigan or flannel for evenings', note: 'You may not need it during the day' },
+    outer: null,
+    feet:  { icon: '👟', items: 'Sneakers or casual shoes', note: null },
+    acc:   { icon: '🕶', items: 'Sunglasses if sunny', note: null },
+  },
+  // --- WARM (75–84°F) ---
+  warm: {
+    base:  { icon: '👕', items: 'T-shirt, linen shirt, or breathable top', note: 'Light colors reflect heat' },
+    mid:   null,
+    outer: null,
+    feet:  { icon: '👟', items: 'Sneakers, sandals, or loafers', note: null },
+    acc:   { icon: '🕶', items: 'Sunglasses + hat', note: null },
+  },
+  // --- HOT (85–94°F) ---
+  hot: {
+    base:  { icon: '👕', items: 'Breathable short-sleeve top or tank', note: 'Moisture-wicking or linen fabric' },
+    mid:   null,
+    outer: null,
+    feet:  { icon: '🩴', items: 'Sandals or breathable sneakers with no-show socks', note: null },
+    acc:   { icon: '🧢', items: 'Hat, sunglasses, light-colored clothes', note: null },
+  },
+  // --- SCORCHING (95°F+) ---
+  scorching: {
+    base:  { icon: '🩱', items: 'Lightest possible — tank, shorts, breezy linen', note: 'UV-protective fabric if prolonged outdoor exposure' },
+    mid:   null,
+    outer: null,
+    feet:  { icon: '🩴', items: 'Sandals or breathable mesh sneakers', note: null },
+    acc:   { icon: '🧴', items: 'SPF clothing + hat + shades + water bottle', note: 'Stay hydrated; SPF 50+ sunscreen' },
+  },
+};
+
+const CONDITION_ICONS = {
+  sunny: '☀️', cloudy: '☁️', rain: '🌧', drizzle: '🌦',
+  snow: '❄️', windy: '💨', humid: '🌫', thunderstorm: '⛈', fog: '🌁'
+};
+
+const CONDITION_NAMES = {
+  sunny: 'Sunny', cloudy: 'Cloudy', rain: 'Rainy', drizzle: 'Light Drizzle',
+  snow: 'Snowy', windy: 'Windy', humid: 'Humid', thunderstorm: 'Thunderstorm', fog: 'Foggy'
+};
+
+function getTier(temp) {
+  if (temp < 20)  return 'freezing';
+  if (temp < 35)  return 'verycold';
+  if (temp < 50)  return 'cold';
+  if (temp < 65)  return 'cool';
+  if (temp < 75)  return 'mild';
+  if (temp < 85)  return 'warm';
+  if (temp < 95)  return 'hot';
+  return 'scorching';
+}
+
+function getTempLabel(temp) {
+  if (temp < 20)  return ['Freezing', 'cold'];
+  if (temp < 35)  return ['Very Cold', 'cold'];
+  if (temp < 50)  return ['Cold', 'cold'];
+  if (temp < 65)  return ['Cool', 'cool'];
+  if (temp < 75)  return ['Mild', 'cool'];
+  if (temp < 85)  return ['Warm', 'warm'];
+  if (temp < 95)  return ['Hot', 'hot'];
+  return ['Scorching', 'hot'];
+}
+
+function applyConditionMods(layers, condition, wind, temp) {
+  const tips = [];
+
+  if (condition === 'rain' || condition === 'thunderstorm') {
+    tips.push('🌧 Waterproof outer layer or rain jacket required. Bring a compact umbrella.');
+    if (layers.feet) layers.feet.items += ' (waterproof)';
+    if (!layers.outer) layers.outer = { icon: '🌂', items: 'Waterproof rain jacket', note: 'Essential — keep a packable one in your bag' };
+    else layers.outer.items += ' — ensure it\'s water-resistant or add a rain shell';
+  }
+
+  if (condition === 'drizzle') {
+    tips.push('🌦 Light drizzle — a water-resistant layer or packable jacket is enough.');
+  }
+
+  if (condition === 'snow') {
+    tips.push('❄️ Snow day: waterproof boots are non-negotiable. Grip matters on ice.');
+    if (layers.feet) layers.feet.items = 'Waterproof snow boots + warm socks';
+    if (!layers.outer) layers.outer = { icon: '🧥', items: 'Waterproof insulated jacket', note: null };
+  }
+
+  if (condition === 'windy' || wind >= 20) {
+    const windNote = `💨 Wind at ${wind} mph — a windbreaker or shell adds significant warmth. Avoid loose fabrics.`;
+    tips.push(windNote);
+    if (!layers.outer) layers.outer = { icon: '💨', items: 'Wind-resistant shell or jacket', note: 'Blocks chill factor significantly' };
+  }
+
+  if (condition === 'humid' && temp >= 75) {
+    tips.push('🌫 High humidity makes it feel hotter — ultra-breathable moisture-wicking fabrics only. Avoid denim.');
+  }
+
+  if (condition === 'fog') {
+    tips.push('🌁 Foggy conditions can be damp and chilly — a light water-resistant layer helps.');
+  }
+
+  if (condition === 'sunny' && temp >= 75) {
+    tips.push('☀️ Strong sun: wear sunscreen and UV-blocking sunglasses/hat if spending time outside.');
+  }
+
+  return tips;
+}
+
+function applyActivityMods(layers, activity, temp) {
+  const tips = [];
+
+  if (activity === 'work') {
+    if (temp >= 65) {
+      layers.base.items = 'Button-down shirt or blouse';
+      layers.base.note = 'Tucked in for a polished look';
+    }
+    if (temp < 65 && layers.mid) layers.mid.items = 'Blazer or structured sweater';
+    tips.push('💼 Office: think smart-casual layers. Keep a backup cardigan at your desk.');
+  }
+
+  if (activity === 'outdoor') {
+    if (layers.base) layers.base.note = 'Moisture-wicking is key for active movement';
+    tips.push('🏃 Active outdoors: prioritize moisture-wicking fabrics. Avoid cotton as your base layer.');
+  }
+
+  if (activity === 'formal') {
+    if (temp >= 60) {
+      layers.base = { icon: '👔', items: 'Dress shirt or blouse + dress trousers / skirt', note: 'Choose wrinkle-resistant fabric for travel' };
+    }
+    if (temp < 60) {
+      layers.mid = { icon: '🧥', items: 'Blazer or smart overcoat', note: 'Tie/pocket square optional' };
+    }
+    tips.push('🎩 Formal event: coordinated accessories elevate the look. Dress shoes over sneakers.');
+  }
+
+  if (activity === 'travel') {
+    tips.push('✈️ Travel tip: wear your bulkiest item on-plane. Compression socks for long flights. Layers are your best friend.');
+  }
+
+  if (activity === 'date') {
+    if (temp >= 65) {
+      layers.base.items += ' (fitted, well-pressed)';
+    }
+    tips.push('🌹 Date night: comfort + style balance. Wear something you\'ve tested — no outfit experiments tonight.');
+  }
+
+  return tips;
+}
+
+function applyStyleMods(layers, style) {
+  const tips = [];
+  if (style === 'minimal') {
+    tips.push('⬛ Minimalist: stick to neutrals — black, white, grey, navy. Clean silhouettes.');
+  }
+  if (style === 'sporty') {
+    if (layers.base) layers.base.items = layers.base.items.replace('shirt', 'performance tee');
+    tips.push('👟 Sporty: athletic cuts + bold colorblock look great. Joggers over chinos.');
+  }
+  if (style === 'stylish') {
+    tips.push('✨ Stylish: add one statement piece — a bold shoe, patterned scarf, or textured jacket.');
+  }
+  if (style === 'smart') {
+    tips.push('🎯 Smart Casual: chinos + Oxford shirt is the safe formula. Elevate with clean white sneakers or loafers.');
+  }
+  return tips;
+}
+
+function applyExtraMods(layers, extras, temp) {
+  const tips = [];
+  if (extras.includes('sensitive') && temp < 70) {
+    tips.push('🌡 You run cold — add one extra layer over the recommendation. Wool is warmer than fleece at the same weight.');
+  }
+  if (extras.includes('sweat') && temp > 60) {
+    tips.push('💧 You sweat easily — prioritize breathable fabrics (linen, merino, moisture-wicking synthetics). Avoid polyester in direct heat.');
+  }
+  if (extras.includes('formal-end')) {
+    tips.push('🍸 Evening event planned: pack a blazer or dress layer you can add when the occasion shifts.');
+  }
+  if (extras.includes('commute')) {
+    tips.push('🚇 Long commute: underground is often 10–15°F warmer than outside. Zip-off or easy-to-carry layers help.');
+  }
+  return tips;
+}
+
+function recommend() {
+  const temp      = parseInt(document.getElementById('temp').value);
+  const feels     = parseInt(document.getElementById('feels').value);
+  const condition = document.getElementById('condition').value;
+  const wind      = parseInt(document.getElementById('wind').value);
+  const activity  = document.getElementById('activity').value;
+  const style     = document.getElementById('style').value;
+  const extras    = getChecked();
+
+  // Use "feels like" for tier calculation
+  const effectiveTemp = feels;
+  const tier = getTier(effectiveTemp);
+  const [tempLabel, tempClass] = getTempLabel(effectiveTemp);
+
+  // Deep-clone the base outfit
+  const baseOutfit = OUTFITS[tier];
+  const layers = {};
+  for (const key of ['base', 'mid', 'outer', 'feet', 'acc']) {
+    layers[key] = baseOutfit[key] ? { ...baseOutfit[key] } : null;
+  }
+
+  const tips = [];
+
+  // Apply mods
+  const condTips  = applyConditionMods(layers, condition, wind, temp);
+  const actTips   = applyActivityMods(layers, activity, temp);
+  const styleTips = applyStyleMods(layers, style);
+  const extraTips = applyExtraMods(layers, extras, temp);
+
+  tips.push(...condTips, ...actTips, ...styleTips, ...extraTips);
+
+  // Feels vs actual note
+  if (Math.abs(temp - feels) >= 5) {
+    tips.push(`🌡 Actual: ${temp}°F but feels like ${feels}°F — outfit is calibrated to the feels-like temp.`);
+  }
+
+  // --- Build result HTML ---
+  const layerOrder = [
+    { key: 'base',  name: 'Base Layer' },
+    { key: 'mid',   name: 'Mid Layer' },
+    { key: 'outer', name: 'Outer Layer' },
+    { key: 'feet',  name: 'Footwear' },
+    { key: 'acc',   name: 'Accessories' },
+  ];
+
+  let layersHtml = '';
+  for (const { key, name } of layerOrder) {
+    if (!layers[key]) continue;
+    const l = layers[key];
+    layersHtml += `
+      <div class="layer">
+        <div class="layer-icon">${l.icon}</div>
+        <div class="layer-body">
+          <div class="layer-name">${name}</div>
+          <div class="layer-items">${l.items}</div>
+          ${l.note ? `<div class="layer-note">${l.note}</div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  let tipsHtml = '';
+  if (tips.length) {
+    tipsHtml = `<div class="tips">
+      <div class="tip-label">💡 Pro Tips</div>
+      ${tips.map(t => `<p>${t}</p>`).join('')}
+    </div>`;
+  }
+
+  const actNames = { casual:'Casual', work:'Work/Office', outdoor:'Active/Outdoor', formal:'Formal', travel:'Travel', date:'Date Night' };
+
+  const resultEl = document.getElementById('result');
+  resultEl.innerHTML = `
+    <div class="outfit-header">
+      <div class="weather-badge">${CONDITION_ICONS[condition]}</div>
+      <div>
+        <div class="outfit-title">Your Outfit for Tomorrow
+          <span class="temp-tag ${tempClass}">${tempLabel}</span>
+        </div>
+        <div class="outfit-subtitle">${temp}°F • ${CONDITION_NAMES[condition]} • ${wind} mph wind • ${actNames[activity]}</div>
+      </div>
+    </div>
+    <div class="layers">${layersHtml}</div>
+    ${tipsHtml}
+  `;
+  resultEl.style.display = 'block';
+  resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
