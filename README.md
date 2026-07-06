@@ -1,21 +1,28 @@
-# 🌤 Weather Clothes
+# 🧥 Weather Clothes
 
-> Enter tomorrow's forecast → exact outfit recommendation
+**Enter tomorrow's forecast → get your exact outfit recommendation**
 
-A zero-dependency, in-browser outfit recommender. Dial in temperature, conditions, wind, activity, and style preference — get a layered outfit plan with pro tips in seconds.
-
-**[Live Demo](https://trinathone.github.io/weather-clothes/)**
+No sign-up, no API keys, no ads. Just paste in the weather and get dressed.
 
 ## Features
-- Covers freezing (< 20°F) through scorching (95°F+) temperatures
-- Adjusts for rain, snow, wind, humidity, fog, and thunderstorms
-- Activity modes: Casual, Work, Outdoor, Formal, Travel, Date Night
-- Style preferences: Comfort, Stylish, Minimalist, Sporty, Smart Casual
-- Personal modifiers: cold-sensitive, sweats easily, evening event, long commute
-- 100% offline — no API calls, no tracking, no accounts
 
-## Tech
-Single `index.html` · Vanilla JS · Dark theme · Zero dependencies
+- Temperature slider with °F / °C toggle
+- Wind chill & heat index calculation
+- Precipitation type (sun, rain, snow, sleet, fog, storm…)
+- Humidity awareness
+- Personal preferences: cold sensitivity, activity level, style vibe
+- Extras: car access, bag, mostly indoors, UV protection, formal event
+- Layered outfit output: base / mid / outer / footwear / accessories
+- Practical daily tips
+
+## Live Demo
+
+👉 **[https://trinathone.github.io/weather-clothes](https://trinathone.github.io/weather-clothes)**
+
+## Usage
+
+Open `index.html` in any browser. Everything runs locally — no internet required after load.
 
 ## License
-MIT © 2026 Trinath Reddy
+
+MIT — do whatever you want with it.
